@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
-import type { User } from "@supabase/supabase-js"
+import type { User, Session } from "@supabase/supabase-js"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { logger } from "@/lib/logger"
@@ -24,16 +24,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const supabaseRef = useRef<SupabaseClient | null>(null)
+  const initialSession = useRef<Session | null>(null)
 
   useEffect(() => {
     supabaseRef.current = createClient()
     const supabase = supabaseRef.current
 
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      initialSession.current = session
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION") return
+
       switch (event) {
         case "SIGNED_IN":
+          if (session?.user?.id === initialSession.current?.user?.id) return
           logger.info("Usuário fez login", "Auth", {
             userId: session?.user?.id,
             email: session?.user?.email,
@@ -43,31 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           logger.info("Usuário fez logout", "Auth")
           break
         case "TOKEN_REFRESHED":
-          logger.debug("Token de sessão renovado", "Auth")
-          break
+          return
         case "USER_UPDATED":
           logger.info("Dados do usuário atualizados", "Auth", {
             userId: session?.user?.id,
           })
           break
-        case "INITIAL_SESSION":
-          logger.debug("Sessão inicial carregada", "Auth", {
-            hasSession: !!session,
-          })
-          break
       }
       setUser(session?.user ?? null)
       setLoading(false)
-    })
-
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
-      if (error) {
-        logger.warn("Falha ao recuperar sessão do usuário", "Auth", {
-          error: error.message,
-        })
-      }
-      setUser(user)
-      setLoading(false)
+      initialSession.current = session
     })
 
     return () => {
@@ -77,14 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function refreshUser() {
     const supabase = supabaseRef.current
-    if (!supabase) {
-      logger.warn("refreshUser chamado sem cliente Supabase", "Auth")
-      return
-    }
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) {
-      logger.error("Erro ao recarregar usuário", "Auth", { error: error.message })
-    }
+    if (!supabase) return
+    const { data: { user } } = await supabase.auth.getUser()
     setUser(user)
   }
 
