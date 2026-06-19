@@ -23,7 +23,7 @@ export const escalaSchema = z.object({
   data: z.string().min(1, "Data é obrigatória"),
   horaInicio: z.string().min(1, "Horário de início é obrigatório"),
   horaFim: z.string().min(1, "Horário de fim é obrigatório"),
-  responsaveis: z.array(z.string()).min(1, "Selecione pelo menos um responsável"),
+  responsaveis: z.array(z.string()).default([]),
   observacoes: z.string().default(""),
 })
 

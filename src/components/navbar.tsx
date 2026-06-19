@@ -41,9 +41,8 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-md px-4 md:px-6">
-      <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
+      <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick} title="Abrir menu" aria-label="Abrir menu">
         <Menu className="h-5 w-5" />
-        <span className="sr-only">Abrir menu</span>
       </Button>
 
       <div className="flex items-center gap-2 md:hidden">
@@ -55,7 +54,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
       <div className="flex-1" />
 
-      <Button variant="ghost" size="icon" className="relative transition-transform hover:scale-110">
+      <Button variant="ghost" size="icon" className="relative transition-transform hover:scale-110" title="Notificações" aria-label="Notificações">
         <Bell className="h-5 w-5" />
       </Button>
 
@@ -65,6 +64,8 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           size="icon"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="transition-transform hover:scale-110"
+          title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+          aria-label={theme === "dark" ? "Modo claro" : "Modo escuro"}
         >
           {theme === "dark" ? (
             <Sun className="h-5 w-5" />

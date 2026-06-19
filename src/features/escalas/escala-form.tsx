@@ -180,7 +180,7 @@ export function EscalaForm({ open, onOpenChange, escala, onSuccess }: EscalaForm
                     return m ? (
                       <Badge key={id} variant="secondary" className="gap-1 pr-1">
                         {m.nome}
-                        <button type="button" onClick={() => toggleMembro(id)} className="ml-1 hover:text-destructive">
+                        <button type="button" onClick={() => toggleMembro(id)} className="ml-1 hover:text-destructive" title="Remover responsável" aria-label="Remover responsável">
                           <X className="h-3 w-3" />
                         </button>
                       </Badge>

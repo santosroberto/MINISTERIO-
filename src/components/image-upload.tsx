@@ -89,6 +89,8 @@ export function ImageUpload({ currentImage, onUpload, onRemove, disabled, classN
             className="absolute -right-1 -top-1 h-6 w-6 rounded-full"
             onClick={(e) => { e.stopPropagation(); handleRemove() }}
             disabled={disabled}
+            title="Remover foto"
+            aria-label="Remover foto"
           >
             <X className="h-3 w-3" />
           </Button>

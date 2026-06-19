@@ -286,6 +286,8 @@ export default function EscalasPage() {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handleOpenEdit(escala)}
+                      title="Editar escala"
+                      aria-label="Editar escala"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -294,6 +296,8 @@ export default function EscalasPage() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleOpenDelete(escala)}
+                      title="Excluir escala"
+                      aria-label="Excluir escala"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -24,6 +24,7 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["10.0.0.10", "localhost"],
   images: {
     remotePatterns: [
       {

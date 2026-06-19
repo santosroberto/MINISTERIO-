@@ -300,6 +300,8 @@ export default function MembrosPage() {
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => setSelectedMembro(selectedMembro?.id === membro.id ? null : membro)}
+                    title="Ver detalhes"
+                    aria-label="Ver detalhes do membro"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -308,6 +310,8 @@ export default function MembrosPage() {
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => handleOpenEdit(membro)}
+                    title="Editar membro"
+                    aria-label="Editar membro"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -316,6 +320,8 @@ export default function MembrosPage() {
                     size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive"
                     onClick={() => handleOpenDelete(membro)}
+                    title="Excluir membro"
+                    aria-label="Excluir membro"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -351,6 +357,8 @@ export default function MembrosPage() {
                 className="h-8 w-8"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
+                title="Página anterior"
+                aria-label="Página anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -363,6 +371,8 @@ export default function MembrosPage() {
                 className="h-8 w-8"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
+                title="Próxima página"
+                aria-label="Próxima página"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

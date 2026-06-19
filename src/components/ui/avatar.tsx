@@ -30,7 +30,7 @@ function Avatar({ className, src, alt, fallback, ...props }: AvatarProps) {
           height={40}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-muted text-sm font-medium">
+        <div className="flex h-full w-full items-center justify-center bg-muted text-sm font-medium" aria-hidden="true">
           {fallback || alt?.charAt(0)?.toUpperCase() || "?"}
         </div>
       )}
