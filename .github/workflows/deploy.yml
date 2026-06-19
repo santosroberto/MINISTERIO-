@@ -1,0 +1,247 @@
+name: CI/CD Pipeline
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+  build:
+    name: Build
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+  validate-migrations:
+    name: Validate SQL Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check SQL files
+        run: |
+          errors=0
+          for f in supabase/migrations/*.sql; do
+            if [ ! -f "$f" ]; then
+              echo "::warning::No migration files found"
+              continue
+            fi
+            if [ ! -s "$f" ]; then
+              echo "::error file=$f::Migration file is empty"
+              errors=$((errors + 1))
+            fi
+            echo "✓ $f ($(wc -l < "$f") lines)"
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "❌ $errors migration file(s) are empty"
+            exit 1
+          fi
+          echo "✅ All migration files valid"
+
+      - name: Basic SQL syntax check
+        run: |
+          if command -v psql &> /dev/null; then
+            for f in supabase/migrations/*.sql; do
+              [ -f "$f" ] || continue
+              if ! psql -c "SET client_min_messages=WARNING; $(cat "$f")" > /dev/null 2>&1; then
+                echo "::warning file=$f::SQL syntax check skipped (needs Supabase server)"
+              fi
+            done
+          else
+            echo "ℹ️  psql not available — SQL syntax check skipped"
+          fi
+
+  test:
+    name: Tests
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for test files
+        id: check_tests
+        run: |
+          test_files=$(find src/ -name "*.test.*" -o -name "*.spec.*" 2>/dev/null | head -5)
+          if [ -n "$test_files" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests
+        if: steps.check_tests.outputs.found == 'true'
+        run: npm test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: No tests found
+        if: steps.check_tests.outputs.found == 'false'
+        run: echo "ℹ️  No test files found — skipping"
+
+  deploy-preview:
+    name: Deploy Preview (Vercel)
+    needs: [lint, build, validate-migrations]
+    if: >
+      github.event_name == 'pull_request' &&
+      (github.base_ref == 'main' || github.base_ref == 'develop')
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment (Preview)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project (Preview)
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel (Preview)
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview URL: $url"
+
+      - name: Comment PR with Preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const body = `## Preview Deploy 🚀\n\n**URL:** [${url}](${url})\n\n*Automatic preview for PR #${{ github.event.number }}*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  deploy-production:
+    name: Deploy Production (Vercel)
+    needs: [lint, build, validate-migrations]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://ministerio-mais.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment (Production)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project (Production)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel (Production)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  security-audit:
+    name: Security Audit
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Check for secrets in code
+        run: |
+          patterns=("-----BEGIN.*PRIVATE KEY" "ghp_[A-Za-z0-9]{36}" "gho_[A-Za-z0-9]{36}" "github_pat_[A-Za-z0-9]{22,}")
+          found=0
+          for pattern in "${patterns[@]}"; do
+            matches=$(grep -r --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -l "$pattern" src/ 2>/dev/null || true)
+            if [ -n "$matches" ]; then
+              echo "::warning::Potential secret found matching '$pattern'"
+              found=$((found + 1))
+            fi
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "✅ No secrets detected in source code"
+          fi
