@@ -25,6 +25,8 @@ import {
   Line,
   Legend,
 } from "recharts"
+
+const CHART_MARGIN = { top: 8, right: 12, left: -10, bottom: 4 }
 import {
   Users,
   Calendar,
@@ -280,25 +282,31 @@ function RelatoriosContent({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={crescimento} barGap={4}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="mes" className="text-xs" tick={{ fill: "currentColor" }} />
-                  <YAxis className="text-xs" tick={{ fill: "currentColor" }} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="entradas" name="Entradas" fill="#6d28d9" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="saidas" name="Saídas" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {crescimento.length === 0 ? (
+              <div className="flex items-center justify-center h-72 text-sm text-muted-foreground">
+                Nenhum dado de crescimento disponível.
+              </div>
+            ) : (
+              <div className="h-72 overflow-hidden">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={crescimento} margin={CHART_MARGIN} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="mes" className="text-xs" tick={{ fill: "currentColor" }} />
+                    <YAxis className="text-xs" tick={{ fill: "currentColor" }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="entradas" name="Entradas" fill="#6d28d9" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                    <Bar dataKey="saidas" name="Saídas" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -310,37 +318,48 @@ function RelatoriosContent({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={participacao}
-                    dataKey="membros"
-                    nameKey="ministerio"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    innerRadius={50}
-                    label={({ percent }) => {
-                      const pct = Number(percent) || 0
-                      return `${(pct * 100).toFixed(0)}%`
-                    }}
-                    labelLine={false}
-                  >
-                    {participacao.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {participacao.length === 0 ? (
+              <div className="flex items-center justify-center h-72 text-sm text-muted-foreground">
+                Nenhum dado de ministérios disponível.
+              </div>
+            ) : (
+              <div className="h-72 overflow-hidden">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                    <Pie
+                      data={participacao}
+                      dataKey="membros"
+                      nameKey="ministerio"
+                      cx="50%"
+                      cy="45%"
+                      outerRadius={70}
+                      innerRadius={44}
+                      paddingAngle={2}
+                    >
+                      {participacao.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value: string) => (
+                        <span className="text-xs text-muted-foreground">{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -352,43 +371,52 @@ function RelatoriosContent({
             Eventos e Escalas por Mês
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={eventosPorMes.map((e, i) => ({ ...e, escalas: escalasPorMes[i]?.escalas || 0 }))}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="mes" className="text-xs" tick={{ fill: "currentColor" }} />
-                <YAxis className="text-xs" tick={{ fill: "currentColor" }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="eventos"
-                  name="Eventos"
-                  stroke="#6d28d9"
-                  strokeWidth={3}
-                  dot={{ fill: "#6d28d9", r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="escalas"
-                  name="Escalas"
-                  stroke="#f59e0b"
-                  strokeWidth={3}
-                  dot={{ fill: "#f59e0b", r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
+          <CardContent>
+            {eventosPorMes.length === 0 && escalasPorMes.length === 0 ? (
+              <div className="flex items-center justify-center h-72 text-sm text-muted-foreground">
+                Nenhum dado de eventos ou escalas disponível.
+              </div>
+            ) : (
+              <div className="h-72 overflow-hidden">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={eventosPorMes.map((e, i) => ({ ...e, escalas: escalasPorMes[i]?.escalas || 0 }))}
+                    margin={CHART_MARGIN}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="mes" className="text-xs" tick={{ fill: "currentColor" }} />
+                    <YAxis className="text-xs" tick={{ fill: "currentColor" }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="eventos"
+                      name="Eventos"
+                      stroke="#6d28d9"
+                      strokeWidth={3}
+                      dot={{ fill: "#6d28d9", r: 5 }}
+                      activeDot={{ r: 7 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="escalas"
+                      name="Escalas"
+                      stroke="#f59e0b"
+                      strokeWidth={3}
+                      dot={{ fill: "#f59e0b", r: 5 }}
+                      activeDot={{ r: 7 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
