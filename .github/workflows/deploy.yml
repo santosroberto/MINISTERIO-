@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://ministerio-mais.vercel.app
+      url: https://ministerio-gamma-nine.vercel.app
     steps:
       - uses: actions/checkout@v4
 
